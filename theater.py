@@ -4,6 +4,7 @@ import os
 import yaml
 import argparse
 import lirc
+import cec
 
 def main():
     parser = argparse.ArgumentParser(description='Control a home theater system')
@@ -15,12 +16,27 @@ def main():
     args = parser.parse_args()
 
     config = yaml.load(open(args.config)) 
+    # CEC setup
+    cec.init()
+
+    devices = [ cec.Device(i) for i in config['other_devices'] ]
+
+    tv = cec.Device(config['tv'])
+    avr = cec.Device(config['avr'])
+
+    # Lirc setup
     lircname = args.name
 
     lirctmp = os.tmpnam()
     print "Lirc config temporary: %s"%(lirctmp)
     
     with open(lirctmp, "w") as lircconf:
+        lircconf.write("""begin
+    button = %s
+    prog = %s
+    config = power
+end
+"""%(config['power_button'], lircname))
         for i in config['inputs']:
             print i
             lircconf.write("""begin
@@ -28,12 +44,36 @@ def main():
     prog = %s
     config = %s
 end
-"""%(i['button'], lircname, i['button']))
+"""%(i, lircname, i))
 
     lirc.init(lircname, lirctmp)
 
+    inputs = config['inputs']
+
+    print inputs
+
     while True:
-        print lirc.nextcode()
+        codes = lirc.nextcode()
+        for code in codes:
+            if code == 'power':
+                if tv.is_on():
+                    method = cec.Device.standby
+                    print "TV is on"
+                else:
+                    method = cec.Device.power_on
+                    print "TV is off"
+                print method
+                method(tv)
+                method(avr)
+                for d in devices:
+                    method(d)
+            elif code in inputs:
+                i = inputs[code]
+                print i
+                if 'path' in i:
+                    print "TODO: set stream path"
+                if 'av_input' in i:
+                    avr.set_av_input(i['av_input'])
 
 if __name__ == '__main__':
     main()
