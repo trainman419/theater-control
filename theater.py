@@ -37,6 +37,18 @@ def main():
     config = power
 end
 """%(config['power_button'], lircname))
+        lircconf.write("""begin
+    button = %s
+    prog = %s
+    config = volup
+end
+"""%(config['volup_button'], lircname))
+        lircconf.write("""begin
+    button = %s
+    prog = %s
+    config = voldown
+end
+"""%(config['voldown_button'], lircname))
         for i in config['inputs']:
             print i
             lircconf.write("""begin
@@ -58,22 +70,27 @@ end
             if code == 'power':
                 if tv.is_on():
                     method = cec.Device.standby
-                    print "TV is on"
+                    print "TV is on; turning it off"
                 else:
                     method = cec.Device.power_on
-                    print "TV is off"
-                print method
+                    print "TV is off; turning it on"
                 method(tv)
                 method(avr)
                 for d in devices:
                     method(d)
+            elif code == 'volup':
+                print "Volume up"
+                cec.volume_up()     
+            elif code == 'voldown':
+                print "Volume down"
+                cec.volume_down()     
             elif code in inputs:
                 i = inputs[code]
                 print i
-                if 'path' in i:
-                    print "TODO: set stream path"
                 if 'av_input' in i:
                     avr.set_av_input(i['av_input'])
+                if 'audio_input' in i:
+                    avr.set_audio_input(i['audio_input'])
 
 if __name__ == '__main__':
     main()

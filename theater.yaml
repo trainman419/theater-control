@@ -1,15 +1,16 @@
 tv: 0
 other_devices: []
 power_button: 'KEY_SLEEP'
+volup_button: 'KEY_VOLUMEUP'
+voldown_button: 'KEY_VOLUMEDOWN'
 # xbmc: KEY_MEDIA
 avr: 5
 inputs:
    KEY_VIDEO:
-      path: '1.0.0.0'
+      av_input: 1
    KEY_AUDIO:
-      path: '1.1.0.0'
+      av_input: 2
    KEY_TV:
-      path: '1.2.0.0'
+      av_input: 3
    KEY_CAMERA:
-      path: '1.3.0.0'
       av_input: 4
