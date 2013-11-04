@@ -49,6 +49,12 @@ end
     config = voldown
 end
 """%(config['voldown_button'], lircname))
+        lircconf.write("""begin
+    button = %s
+    prog = %s
+    config = volmute
+end
+"""%(config['volmute_button'], lircname))
         for i in config['inputs']:
             print i
             lircconf.write("""begin
@@ -84,6 +90,9 @@ end
             elif code == 'voldown':
                 print "Volume down"
                 cec.volume_down()     
+            elif code == 'volmute':
+                print "Volume mute toggle"
+                cec.toggle_mute()     
             elif code in inputs:
                 i = inputs[code]
                 print i
