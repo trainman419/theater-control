@@ -1,10 +1,11 @@
 tv: 0
 other_devices: []
-power_button: 'KEY_SLEEP'
+power_button: 'KEY_POWER'
 volup_button: 'KEY_VOLUMEUP'
 voldown_button: 'KEY_VOLUMEDOWN'
 volmute_button: 'KEY_MUTE'
 # xbmc: KEY_MEDIA
+home: 'KEY_HOME'
 avr: 5
 inputs:
    KEY_VIDEO: # home theater
@@ -13,5 +14,5 @@ inputs:
       audio_input: 0
    KEY_TV: # apple TV
       av_input: 4
-   KEY_CAMERA: # Roku
+   Pictures: # Roku
       av_input: 3
