@@ -5,6 +5,10 @@ import yaml
 import argparse
 import lirc
 import cec
+import tempfile
+import subprocess
+import threading
+import time
 
 def main():
     parser = argparse.ArgumentParser(description='Control a home theater system')
@@ -12,11 +16,19 @@ def main():
             default="theater.yaml")
     parser.add_argument('-n', '--name', help="Lirc name", 
             default="theater_control")
+    parser.add_argument('-w', '--wait', help='time in seconds to wait before stating', default='0.0')
 
     args = parser.parse_args()
 
+    timeout = float(args.wait)
+    if timeout:
+        print("Waiting '{0}' seconds before starting...".format(timeout))
+	time.sleep(timeout)
+
+    print("Loading config file from '{0}'...".format(args.config))
     config = yaml.load(open(args.config)) 
     # CEC setup
+    print("Initializing CEC...")
     cec.init()
 
     devices = [ cec.Device(i) for i in config['other_devices'] ]
@@ -27,7 +39,7 @@ def main():
     # Lirc setup
     lircname = args.name
 
-    lirctmp = os.tmpnam()
+    lirctmp = os.path.join(tempfile.mkdtemp(), 'lirc.conf')
     print "Lirc config temporary: %s"%(lirctmp)
     
     with open(lirctmp, "w") as lircconf:
@@ -43,6 +55,12 @@ end
     config = volup
 end
 """%(config['volup_button'], lircname))
+	lircconf.write("""begin
+    button = %s
+    prog = %s
+    config = home
+end
+"""%(config['home'], lircname))
         lircconf.write("""begin
     button = %s
     prog = %s
@@ -68,11 +86,14 @@ end
 
     inputs = config['inputs']
 
-    print inputs
+    p = None
+
+    subprocess.Popen(os.path.join(os.path.dirname(__file__), 'notify.py'), shell=True)
 
     while True:
         codes = lirc.nextcode()
         for code in codes:
+	    print code
             if code == 'power':
                 if tv.is_on():
                     method = cec.Device.standby
@@ -100,6 +121,14 @@ end
                     avr.set_av_input(i['av_input'])
                 if 'audio_input' in i:
                     avr.set_audio_input(i['audio_input'])
+	    elif code == 'home':
+		if p is not None:
+		    p.terminate()
+		    if p.poll() is None:
+			threading.Timer(3.0, p.kill).start()
+		    p.wait()
+		    p = None
+		p = subprocess.Popen(['/usr/bin/plexhometheater.sh'], shell=True)
 
 if __name__ == '__main__':
     main()
