@@ -23,13 +23,16 @@ def main():
     timeout = float(args.wait)
     if timeout:
         print("Waiting '{0}' seconds before starting...".format(timeout))
-	time.sleep(timeout)
+        time.sleep(timeout)
 
     print("Loading config file from '{0}'...".format(args.config))
     config = yaml.load(open(args.config)) 
     # CEC setup
     print("Initializing CEC...")
     cec.init()
+
+    if 'avr_port' in config:
+      cec.set_port(config['avr'], config['avr_port'])
 
     devices = [ cec.Device(i) for i in config['other_devices'] ]
 
@@ -55,7 +58,7 @@ end
     config = volup
 end
 """%(config['volup_button'], lircname))
-	lircconf.write("""begin
+        lircconf.write("""begin
     button = %s
     prog = %s
     config = home
@@ -89,13 +92,21 @@ end
     p = None
 
     subprocess.Popen(os.path.join(os.path.dirname(__file__), 'notify.py'), shell=True)
+    os.environ['XBMC_HOME'] = "/opt/plexhometheater/share/XBMC"
 
     while True:
+        print("here")
         codes = lirc.nextcode()
         for code in codes:
-	    print code
+            print code
             if code == 'power':
-                if tv.is_on():
+                tv_is_on = False
+                try:
+                    tv_is_on = tv.is_on()
+                except IOError as exc:
+                    print('%s' % exc)
+                    continue
+                if tv_is_on:
                     method = cec.Device.standby
                     print "TV is on; turning it off"
                 else:
@@ -121,14 +132,18 @@ end
                     avr.set_av_input(i['av_input'])
                 if 'audio_input' in i:
                     avr.set_audio_input(i['audio_input'])
-	    elif code == 'home':
-		if p is not None:
-		    p.terminate()
-		    if p.poll() is None:
-			threading.Timer(3.0, p.kill).start()
-		    p.wait()
-		    p = None
-		p = subprocess.Popen(['/usr/bin/plexhometheater.sh'], shell=True)
+            elif code == 'home':
+                if p is not None:
+                    print("killing plex")
+                    p.terminate()
+                    if p.poll() is None:
+                        threading.Timer(3.0, p.kill).start()
+                    p.wait()
+                    p = None
+                else:
+                    print("starting new plex")
+                    p = subprocess.Popen(['/opt/plexhometheater/bin/plexhometheater'], shell=False)
 
 if __name__ == '__main__':
     main()
+
